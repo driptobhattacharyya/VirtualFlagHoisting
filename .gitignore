@@ -1,0 +1,49 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.independence_env/
+independence_env/
+independence39/
+.venv/
+venv/
+ENV/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.swp
+
+# Python tooling
+.pytest_cache/
+.coverage*
+.mypy_cache/
+.pyre/
+.dmypy.json
+.pytype/
+
+# Local environment variables
+.env
+.env.*
+.envrc
+
+# Jupyter
+.ipynb_checkpoints/
