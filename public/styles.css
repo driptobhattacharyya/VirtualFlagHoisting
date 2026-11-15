@@ -51,18 +51,6 @@ html, body {
 body[data-state="hoisting"] #stage { cursor: grab; }
 body[data-state="hoisting"] #stage.dragging { cursor: grabbing; }
 
-/* Emblems in the top corners */
-.emblem {
-  position: fixed;
-  top: 2vh;
-  height: min(18vh, 17vw);
-  width: auto;
-  pointer-events: none;
-  user-select: none;
-}
-.emblem-left { left: 2vw; }
-.emblem-right { right: 2vw; }
-
 .panel {
   background: var(--panel);
   border-radius: 6px;
@@ -72,7 +60,7 @@ body[data-state="hoisting"] #stage.dragging { cursor: grabbing; }
 #hud {
   position: fixed;
   left: max(1vw, env(safe-area-inset-left));
-  bottom: max(1vh, env(safe-area-inset-bottom));
+  top: max(1vh, env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -196,7 +184,7 @@ body[data-state="hoisting"] #stage.dragging { cursor: grabbing; }
 /* Toast */
 #toast {
   position: fixed;
-  top: max(2vh, env(safe-area-inset-top));
+  bottom: max(2vh, env(safe-area-inset-bottom)); /* clear of the HUD at the top */
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -282,7 +270,7 @@ body[data-state="hoisting"] #stage.dragging { cursor: grabbing; }
 
 /* Phones in portrait: the pole is in the middle, so keep the HUD compact. */
 @media (max-width: 600px) {
-  #hud { max-width: 44vw; gap: 6px; }
+  #hud { max-width: 42vw; gap: 6px; }
   #instructions { font-size: 0.8rem; padding: 0.4em 0.55em; }
   #camera { width: 40vw; }
   #celebration .banner { min-width: 86vw; }

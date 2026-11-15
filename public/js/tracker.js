@@ -282,7 +282,7 @@ function hasHardwareWebGL() {
 }
 
 async function loadLandmarker() {
-  // vendor.js is written by `npm run build` (scripts/build.mjs) and points at
+  // vendor.js is written by `bun run build` (scripts/build.mjs) and points at
   // versioned copies of the MediaPipe runtime and the model.
   const { MEDIAPIPE_URL, MODEL_URL } = await import('./vendor.js');
   const base = new URL(MEDIAPIPE_URL, import.meta.url);

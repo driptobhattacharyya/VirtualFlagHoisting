@@ -3,9 +3,9 @@
   "name": "virtual-flag-hoisting",
   "compatibility_date": "2026-11-01",
   // Copies the MediaPipe runtime and model into public/vendor/ before
-  // `wrangler dev` and `wrangler deploy`.
+  // `wrangler dev` and `wrangler deploy` (locally and in Workers Builds).
   "build": {
-    "command": "npm run build"
+    "command": "bun run build"
   },
   // Static assets only: there is no Worker script.
   "assets": {

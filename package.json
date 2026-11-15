@@ -15,6 +15,8 @@
     "wrangler": "^4.162.0"
   },
   "engines": {
-    "node": ">=20"
-  }
+    "node": ">=20",
+    "bun": ">=1.2"
+  },
+  "packageManager": "bun@1.4.4"
 }
