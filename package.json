@@ -1,0 +1,22 @@
+{
+  "name": "virtual-flag-hoisting",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser version of the Independence Day flag hoisting app, served from Cloudflare Workers static assets.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "0.10.35",
+    "wrangler": "^4.162.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "bun": ">=1.2"
+  },
+  "packageManager": "bun@1.4.4"
+}
