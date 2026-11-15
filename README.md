@@ -48,3 +48,59 @@ This application was created for Independence Day celebrations. It allows users 
 - Indian flag specifications from the official guidelines
 - Ashoka Chakra image from Wikimedia Commons
 - Background and decorative elements from open sources
+
+## Web version
+
+The same experience runs in the browser, as a static site in `public/` served
+by Cloudflare Workers static assets at
+<https://virtual-flag-hoisting.driptobhattacharyya.com>. `main.py` and the
+desktop instructions above are unchanged.
+
+- Hand tracking uses MediaPipe's `HandLandmarker` (`@mediapipe/tasks-vision`)
+  with the same gesture as the desktop app: pinch thumb and index finger, then
+  pull down. The video is processed in the browser and is never uploaded.
+- Without a camera (or if permission is denied, or tracking fails to load) you
+  hoist the flag by dragging the rope down repeatedly with the mouse or a
+  finger, or by pressing the down arrow key.
+
+### Local development
+
+Requires Node.js 20 or newer.
+
+```
+npm install
+npm run dev
+```
+
+Then open the address Wrangler prints (http://localhost:8787). Browsers only
+allow camera access on `localhost` or over HTTPS.
+
+Wrangler runs `npm run build` first (the `build.command` in `wrangler.jsonc`).
+That step copies the MediaPipe JavaScript and WebAssembly files from
+`node_modules` and downloads the hand landmarker model into `public/vendor/`,
+which is generated and not committed, so the site serves all of its own code.
+If the model cannot be downloaded at build time, the site loads it from
+Google's storage at runtime instead.
+
+### Deployment
+
+```
+npx wrangler login
+npm run deploy
+```
+
+`wrangler.jsonc` routes the Worker to the custom domain
+`virtual-flag-hoisting.driptobhattacharyya.com`. The one prerequisite is that
+the `driptobhattacharyya.com` zone is on the same Cloudflare account you log in
+with; the custom-domain route then creates the DNS record and the certificate
+automatically. `npm run check` validates the configuration and asset bundle
+without deploying.
+
+### Layout
+
+- `public/index.html`, `public/styles.css` - page and start screen
+- `public/js/game.js` - game states, flag, fireworks, canvas rendering
+- `public/js/gesture.js`, `public/js/tracker.js` - pull detection and camera
+- `public/js/config.js` - thresholds and other tunable constants
+- `public/_headers` - security and caching headers
+- `scripts/build.mjs` - fills `public/vendor/`
