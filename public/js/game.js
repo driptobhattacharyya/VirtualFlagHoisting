@@ -7,11 +7,9 @@ import {
   FIREWORK_INTERVAL,
   FIREWORK_INTERVAL_REDUCED,
   FIREWORK_GRAVITY,
-  PARTICLE_GRAVITY,
-  PARTICLE_SPEED,
   PARTICLE_LIFE,
-  PARTICLE_FADE_AFTER,
-  PARTICLE_SHRINK,
+  PARTICLE_GRAVITY,
+  PARTICLE_DRAG,
 } from './config.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -165,36 +163,31 @@ export class Game {
       this.launchFirework(W, H);
     }
 
-    // Fireworks rise until they stall, then burst into particles.
-    const scale = this.particleScale();
+    // Fireworks rise until they stall, then burst into sparks.
     for (let i = this.fireworks.length - 1; i >= 0; i--) {
       const fw = this.fireworks[i];
       fw.y += fw.vy * dt;
       fw.vy += fw.gravity * dt;
       if (fw.vy >= 0) {
         this.fireworks.splice(i, 1);
-        for (let n = 0; n < fw.count; n++) {
-          this.particles.push({
-            x: fw.x,
-            y: fw.y,
-            color: fw.color,
-            radius: randInt(1, 3) * scale,
-            vx: rand(-PARTICLE_SPEED, PARTICLE_SPEED) * scale,
-            vy: rand(-PARTICLE_SPEED, PARTICLE_SPEED) * scale,
-            life: PARTICLE_LIFE,
-          });
-        }
+        this.burst(fw);
       }
     }
 
+    const size = this.sparkSize();
+    const slow = Math.exp(-PARTICLE_DRAG * dt);
+    const follow = 1 - Math.exp(-dt * 9);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += PARTICLE_GRAVITY * scale * dt;
+      p.vx *= slow;
+      p.vy = p.vy * slow + PARTICLE_GRAVITY * size * dt;
+      // The tail trails behind the head, which draws a short streak.
+      p.tx += (p.x - p.tx) * follow;
+      p.ty += (p.y - p.ty) * follow;
       p.life -= dt;
-      if (p.life < PARTICLE_FADE_AFTER) p.radius -= PARTICLE_SHRINK * scale * dt;
-      if (p.life <= 0 || p.radius <= 0) this.particles.splice(i, 1);
+      if (p.life <= 0) this.particles.splice(i, 1);
     }
 
     if (!active && this.fireworks.length === 0 && this.particles.length === 0) {
@@ -202,24 +195,62 @@ export class Game {
     }
   }
 
-  particleScale() {
-    return clamp(Math.min(this.width, this.height) / 800, 0.7, 1.6);
+  /** Spark size factor: bigger sparks on bigger screens. */
+  sparkSize() {
+    return clamp(Math.min(this.width, this.height) / 600, 0.9, 2.2);
   }
 
   launchFirework(W, H) {
     // Launched from the bottom edge anywhere across the viewport (the Python
     // version used a fixed 100-700 px range) and aimed to burst in the sky.
-    const rise = rand(0.4, 0.85) * H;
+    const rise = rand(0.45, 0.88) * H;
     const gravity = FIREWORK_GRAVITY * clamp(H / 900, 0.6, 1.6);
-    const count = randInt(30, 50);
+    // Python: 30-50 particles. Scaled with the viewport so a large screen
+    // does not get a thin scatter and a phone is not asked to draw too many.
+    const density = clamp(Math.sqrt(W * H) / 750, 0.8, 2.2);
+    const count = randInt(30, 50) * density * (this.reducedMotion ? 0.5 : 1);
+    // Mostly random bright colours, with the tricolour mixed in.
+    const palette = [
+      { hue: 28, light: 60 }, // saffron
+      { hue: 0, light: 96 }, // white
+      { hue: 115, light: 55 }, // green
+    ];
+    const color = Math.random() < 0.35
+      ? palette[randInt(0, 2)]
+      : { hue: randInt(0, 359), light: randInt(58, 70) };
     this.fireworks.push({
       x: rand(0.06, 0.94) * W,
       y: H,
       vy: -Math.sqrt(2 * gravity * rise),
       gravity,
-      color: [randInt(50, 255), randInt(50, 255), randInt(50, 255)],
-      count: this.reducedMotion ? Math.round(count / 2) : count,
+      color,
+      count: Math.round(count),
+      spread: Math.min(W, H) * rand(0.16, 0.26), // radius of the burst
     });
+  }
+
+  burst(fw) {
+    const size = this.sparkSize();
+    // With drag, a spark launched at v travels about v / drag in total.
+    const speed = fw.spread * PARTICLE_DRAG;
+    for (let n = 0; n < fw.count; n++) {
+      const angle = rand(0, Math.PI * 2);
+      const v = speed * (0.3 + 0.7 * Math.sqrt(Math.random()));
+      const life = PARTICLE_LIFE * rand(0.7, 1);
+      this.particles.push({
+        x: fw.x,
+        y: fw.y,
+        tx: fw.x,
+        ty: fw.y,
+        vx: Math.cos(angle) * v,
+        vy: Math.sin(angle) * v,
+        radius: rand(1.3, 2.6) * size,
+        life,
+        maxLife: life,
+        hue: fw.color.hue,
+        light: fw.color.light,
+      });
+    }
   }
 
   // --- Rendering -------------------------------------------------------------------
@@ -249,7 +280,7 @@ export class Game {
     ctx.fillRect(x + L.poleWidth * 0.18, L.poleY, L.poleWidth * 0.22, h);
     // Finial
     ctx.beginPath();
-    ctx.arc(L.poleX, L.poleY - L.poleWidth * 0.35, L.poleWidth * 0.85, 0, Math.PI * 2);
+    ctx.arc(L.poleX, L.poleY - L.poleWidth * 0.2, L.poleWidth * 0.75, 0, Math.PI * 2);
     ctx.fillStyle = 'rgb(212, 175, 55)';
     ctx.fill();
     ctx.lineWidth = 1;
@@ -388,22 +419,53 @@ export class Game {
   }
 
   drawFireworks() {
+    if (!this.fireworks.length && !this.particles.length) return;
     const ctx = this.ctx;
-    const scale = this.particleScale();
+    const size = this.sparkSize();
+    const trails = !this.reducedMotion;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter'; // overlapping sparks glow
+    ctx.lineCap = 'round';
+
+    // Rising rockets with a short tail.
     for (const fw of this.fireworks) {
-      ctx.fillStyle = `rgb(${fw.color[0]}, ${fw.color[1]}, ${fw.color[2]})`;
+      const tail = Math.min(46 * size, -fw.vy * 0.07);
+      ctx.strokeStyle = `hsla(${fw.color.hue}, 100%, 85%, 0.55)`;
+      ctx.lineWidth = 2 * size;
       ctx.beginPath();
-      ctx.arc(fw.x, fw.y, 3 * scale, 0, Math.PI * 2);
+      ctx.moveTo(fw.x, fw.y + tail);
+      ctx.lineTo(fw.x, fw.y);
+      ctx.stroke();
+      ctx.fillStyle = `hsl(${fw.color.hue}, 100%, 92%)`;
+      ctx.beginPath();
+      ctx.arc(fw.x, fw.y, 2.4 * size, 0, Math.PI * 2);
       ctx.fill();
     }
+
     for (const p of this.particles) {
-      // Python: alpha = min(255, life_in_frames * 3)
-      const alpha = Math.min(1, (p.life * 60 * 3) / 255);
-      ctx.fillStyle = `rgba(${p.color[0]}, ${p.color[1]}, ${p.color[2]}, ${alpha})`;
+      const age = p.life / p.maxLife; // 1 = fresh, 0 = gone
+      const alpha = Math.min(1, age * 2.2); // fade over the second half
+      const radius = p.radius * (0.45 + 0.55 * Math.min(1, age * 2));
+      const sat = p.light > 90 ? 20 : 100;
+      if (trails) {
+        ctx.strokeStyle = `hsla(${p.hue}, ${sat}%, ${p.light}%, ${alpha * 0.45})`;
+        ctx.lineWidth = radius * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(p.tx, p.ty);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      }
+      // Soft halo, then a bright core.
+      ctx.fillStyle = `hsla(${p.hue}, ${sat}%, ${p.light}%, ${alpha * 0.22})`;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0, p.radius), 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, radius * 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `hsla(${p.hue}, ${sat}%, ${Math.min(97, p.light + 22)}%, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
   }
 }
 

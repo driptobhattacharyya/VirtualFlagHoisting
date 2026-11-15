@@ -29,7 +29,23 @@ export const HOIST_RATE = (12 / 756) * 30;
 export const SPEED_WINDOW_MS = 30;
 
 // If the hand was last seen longer ago than this, start measuring afresh.
-export const MAX_SAMPLE_GAP_MS = 250;
+// Generous enough for slow devices that only manage a few detections/second.
+export const MAX_SAMPLE_GAP_MS = 500;
+
+// Longest time one detection may be credited with pulling.
+export const MAX_GAIN_DT_MS = 250;
+
+// A wrist "moving" faster than this (frame heights/second) is a tracking jump
+// or a hand that reappeared elsewhere, not a pull. A brisk real pull is ~1-2.5.
+export const PULL_MAX_SPEED = 4;
+
+// Below this many detections per second the page suggests dragging the rope.
+export const SLOW_DETECT_FPS = 8;
+
+// Hand tracking start-up and camera health.
+export const MODEL_TIMEOUT_MS = 25000;
+export const FRAME_WATCHDOG_MS = 2000;
+export const HIDDEN_RELEASE_MS = 15000;
 
 // Upper bound on hand detections per second.
 export const MAX_DETECT_FPS = 30;
@@ -59,8 +75,6 @@ export const FIREWORK_INTERVAL_REDUCED = 0.75;
 // Python physics is per frame at 60 fps; converted to seconds here.
 export const FRAME = 1 / 60;
 export const FIREWORK_GRAVITY = 0.2 / (FRAME * FRAME); // px/s^2
-export const PARTICLE_GRAVITY = 0.1 / (FRAME * FRAME); // px/s^2
-export const PARTICLE_SPEED = 3 / FRAME; // px/s, uniform in [-v, v]
-export const PARTICLE_LIFE = 100 * FRAME; // s
-export const PARTICLE_FADE_AFTER = 50 * FRAME; // s of life left
-export const PARTICLE_SHRINK = 0.05 / FRAME; // px/s
+export const PARTICLE_LIFE = 100 * FRAME; // s, Python
+export const PARTICLE_GRAVITY = 170; // px/s^2 at scale 1; sparks are light
+export const PARTICLE_DRAG = 2.2; // 1/s, air resistance

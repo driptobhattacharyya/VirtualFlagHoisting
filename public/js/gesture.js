@@ -1,9 +1,11 @@
 import {
   PINCH_THRESHOLD,
   PULL_MIN_SPEED,
+  PULL_MAX_SPEED,
   HOIST_RATE,
   SPEED_WINDOW_MS,
   MAX_SAMPLE_GAP_MS,
+  MAX_GAIN_DT_MS,
 } from './config.js';
 
 const THUMB_TIP = 4;
@@ -20,7 +22,7 @@ const WRIST = 0;
  */
 export class PullDetector {
   constructor() {
-    this.samples = []; // { t, y } of the wrist, oldest first
+    this.samples = []; // { t, y, pinching } of the wrist, oldest first
     this.lastTime = null;
   }
 
@@ -58,16 +60,22 @@ export class PullDetector {
       if (timeMs - ref.t >= SPEED_WINDOW_MS) break;
     }
 
-    if (ref && result.pinching && timeMs > ref.t) {
+    if (ref && timeMs > ref.t) {
       const speed = (y - ref.y) / ((timeMs - ref.t) / 1000); // + is downward
-      if (speed > PULL_MIN_SPEED) {
-        const dt = Math.min(timeMs - this.lastTime, 100) / 1000;
+      if (Math.abs(speed) > PULL_MAX_SPEED) {
+        // The wrist cannot really have moved this far: the tracker jumped or
+        // the hand reappeared somewhere else. Start measuring afresh.
+        samples.length = 0;
+      } else if (result.pinching && ref.pinching && speed > PULL_MIN_SPEED) {
+        // A pull is a pinch held while the hand travels down, so the
+        // reference must have been pinching too.
+        const dt = Math.min(timeMs - this.lastTime, MAX_GAIN_DT_MS) / 1000;
         result.pulling = true;
         result.gain = HOIST_RATE * dt;
       }
     }
 
-    samples.push({ t: timeMs, y });
+    samples.push({ t: timeMs, y, pinching: result.pinching });
     this.lastTime = timeMs;
     return result;
   }

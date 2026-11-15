@@ -53,3 +53,4 @@ node_modules/
 .wrangler/
 .dev.vars
 public/vendor/
+public/js/vendor.js

@@ -77,10 +77,12 @@ allow camera access on `localhost` or over HTTPS.
 
 Wrangler runs `npm run build` first (the `build.command` in `wrangler.jsonc`).
 That step copies the MediaPipe JavaScript and WebAssembly files from
-`node_modules` and downloads the hand landmarker model into `public/vendor/`,
-which is generated and not committed, so the site serves all of its own code.
-If the model cannot be downloaded at build time, the site loads it from
-Google's storage at runtime instead.
+`node_modules` and downloads the hand landmarker model (checked against a
+pinned SHA-256) into `public/vendor/`, and writes `public/js/vendor.js`, which
+points at them. Both are generated and not committed, so the site serves all of
+its own code. The vendor paths contain the package version and the model hash,
+so they can be cached for a long time. If a verified model cannot be downloaded
+at build time, the site loads it from Google's storage at runtime instead.
 
 ### Deployment
 
@@ -103,4 +105,4 @@ without deploying.
 - `public/js/gesture.js`, `public/js/tracker.js` - pull detection and camera
 - `public/js/config.js` - thresholds and other tunable constants
 - `public/_headers` - security and caching headers
-- `scripts/build.mjs` - fills `public/vendor/`
+- `scripts/build.mjs` - fills `public/vendor/` and writes `public/js/vendor.js`

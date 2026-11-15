@@ -2,10 +2,12 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://storage.googleapis.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self' https://storage.googleapis.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
 
 /img/*
   Cache-Control: public, max-age=604800
 
+# Every path below /vendor/ contains a version or a content hash
+# (see scripts/build.mjs), so these files never change under the same URL.
 /vendor/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=31536000, immutable
